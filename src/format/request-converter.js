@@ -242,6 +242,22 @@ export function convertAnthropicToGoogle(anthropicRequest) {
                 || tool.parameters
                 || { type: 'object' };
 
+            // A parameterless function must stay parameterless. The generic
+            // sanitizer invents a required `reason` for empty objects, which
+            // callers with additionalProperties:false cannot accept back.
+            // Gemini function declarations allow parameters to be omitted.
+            const noParameters = schema.type === 'object' &&
+                schema.properties && Object.keys(schema.properties).length === 0 &&
+                schema.additionalProperties === false &&
+                (!schema.required || schema.required.length === 0) &&
+                !['oneOf', 'anyOf', 'allOf', '$ref'].some(key => key in schema);
+            if (noParameters) {
+                return {
+                    name: String(name).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64),
+                    description: description
+                };
+            }
+
             // Sanitize schema for general compatibility
             let parameters = sanitizeSchema(schema);
 
