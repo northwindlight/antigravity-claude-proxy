@@ -133,13 +133,13 @@ export const ANTIGRAVITY_AUTH_PORT = 9092;
 export const DEFAULT_PORT = config?.port || 8080;
 
 // Multi-account configuration
-export const ACCOUNT_CONFIG_PATH = config?.accountConfigPath || join(
+export const ACCOUNT_CONFIG_PATH = process.env.ANTIGRAVITY_ACCOUNT_CONFIG || config?.accountConfigPath || join(
     homedir(),
     '.config/antigravity-proxy/accounts.json'
 );
 
 // Usage history persistence path
-export const USAGE_HISTORY_PATH = join(
+export const USAGE_HISTORY_PATH = process.env.ANTIGRAVITY_USAGE_HISTORY_PATH || join(
     homedir(),
     '.config/antigravity-proxy/usage-history.json'
 );
