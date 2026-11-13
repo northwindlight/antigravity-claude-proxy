@@ -20,5 +20,6 @@ npm run test:interleaved   # Interleaved thinking
 npm run test:images        # Image processing
 npm run test:caching       # Prompt caching
 npm run test:strategies    # Account selection strategies
+npm run test:account-model-access # Accounts with different model permissions (offline)
 npm run test:cache-control # Cache control field stripping
 ```

@@ -166,7 +166,7 @@ export async function getModelQuotas(token, projectId = null) {
     const quotas = {};
     for (const [modelId, modelData] of Object.entries(data.models)) {
         // Only include Claude and Gemini models
-        if (!isSupportedModel(modelId)) continue;
+        if (!isSupportedModel(modelId) || isDisabledPlaceholder(modelId)) continue;
 
         if (modelData.quotaInfo) {
             quotas[modelId] = {
@@ -174,6 +174,9 @@ export async function getModelQuotas(token, projectId = null) {
                 remainingFraction: modelData.quotaInfo.remainingFraction ?? (modelData.quotaInfo.resetTime ? 0 : null),
                 resetTime: modelData.quotaInfo.resetTime ?? null
             };
+        } else {
+            // Keep models without quota info: absence of a quota is not lack of access.
+            quotas[modelId] = { remainingFraction: null, resetTime: null };
         }
     }
 

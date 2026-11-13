@@ -191,6 +191,12 @@ async function runTests() {
         if (quotas['gpt-oss-120b-medium']) throw new Error('gpt-oss should not be quota-tracked');
     });
 
+    await test('Model catalog keeps supported models without quota information', async () => {
+        const quotas = await getModelQuotas('fake-token');
+        assertEqual(quotas['claude-sonnet-5-5-low'], { remainingFraction: null, resetTime: null });
+        assertEqual(quotas['gemini-2.5-pro'], { remainingFraction: null, resetTime: null });
+    });
+
     await test('Backend fetch failure surfaces as an error from listModels', async () => {
         fetchMode = 'fail';
         try {

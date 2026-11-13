@@ -387,6 +387,7 @@ app.get('/account-limits', async (req, res) => {
                     };
                     account.quota = {
                         models: quotas,
+                        modelsComplete: true,
                         lastChecked: Date.now()
                     };
 
@@ -662,8 +663,8 @@ app.post('/refresh-token', async (req, res) => {
 app.get('/v1/models', async (req, res) => {
     try {
         await ensureInitialized();
-        const { account } = accountManager.selectAccount();
-        if (!account) {
+        const accounts = accountManager.getAllAccounts().filter(a => a.enabled !== false && !a.isInvalid);
+        if (!accounts.length) {
             return res.status(503).json({
                 type: 'error',
                 error: {
@@ -672,9 +673,17 @@ app.get('/v1/models', async (req, res) => {
                 }
             });
         }
-        const token = await accountManager.getTokenForAccount(account);
-        const models = await listModels(token);
-        res.json(models);
+        const results = await Promise.allSettled(accounts.map(async account => {
+            const token = await accountManager.getTokenForAccount(account);
+            return listModels(token);
+        }));
+        const successful = results.filter(r => r.status === 'fulfilled');
+        if (!successful.length) throw results[0].reason;
+        const models = new Map();
+        for (const result of successful) {
+            for (const model of result.value.data) models.set(model.id, model);
+        }
+        res.json({ object: 'list', data: [...models.values()] });
     } catch (error) {
         logger.error('[API] Error listing models:', error);
         res.status(500).json({
@@ -745,11 +754,16 @@ app.post('/v1/messages', async (req, res) => {
         const modelId = requestedModel;
 
         // Validate model ID before processing
-        const { account: validationAccount } = accountManager.selectAccount();
+        const validationAccount = accountManager.getAvailableAccounts(modelId)[0];
         if (validationAccount) {
-            const token = await accountManager.getTokenForAccount(validationAccount);
-            const projectId = validationAccount.subscription?.projectId || null;
-            const valid = await isValidModel(modelId, token, projectId);
+            // A complete per-account catalog is authoritative. The legacy global
+            // validation cache may belong to another account with different access.
+            let valid = true;
+            if (!validationAccount.quota?.modelsComplete) {
+                const token = await accountManager.getTokenForAccount(validationAccount);
+                const projectId = validationAccount.subscription?.projectId || null;
+                valid = await isValidModel(modelId, token, projectId);
+            }
 
             if (!valid) {
                 throw new Error(`invalid_request_error: Invalid model: ${modelId}. Use /v1/models to see available models.`);

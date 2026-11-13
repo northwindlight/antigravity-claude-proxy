@@ -6,6 +6,7 @@
  */
 
 import { isAccountCoolingDown } from '../rate-limits.js';
+import { accountSupportsModel } from '../model-availability.js';
 
 /**
  * @typedef {Object} SelectionResult
@@ -78,6 +79,7 @@ export class BaseStrategy {
 
         // Skip disabled accounts
         if (account.enabled === false) return false;
+        if (!accountSupportsModel(account, modelId)) return false;
 
         // Check if account is cooling down (matches opencode-antigravity-auth)
         if (isAccountCoolingDown(account)) return false;

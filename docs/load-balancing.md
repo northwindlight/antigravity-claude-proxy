@@ -31,6 +31,7 @@ antigravity-claude-proxy start --strategy=round-robin  # Load-balanced
 - **Emergency Fallback**: When all accounts appear exhausted, bypasses checks with throttle delays (250-500ms)
 - **Automatic Cooldown**: Rate-limited accounts recover automatically after reset time expires
 - **Invalid Account Detection**: Accounts needing re-authentication are marked and skipped
+- **Model Access**: After an account-limits refresh, requests only use accounts whose upstream catalog includes the requested model. Models without quota information remain eligible. The model listing combines enabled accounts; refresh account limits after an account gains access to new models.
 - **Prompt Caching Support**: Session IDs derived from conversation enable cache hits across turns
 
 ## Monitoring
