@@ -21,6 +21,10 @@ import { clearAllSignatureCaches } from './format/signature-cache.js';
 import { formatDuration } from './utils/helpers.js';
 import { logger } from './utils/logger.js';
 import usageStats from './modules/usage-stats.js';
+import { createUpstreams, loadUpstreams } from './upstreams.js';
+
+// Enabled only on the unified instance; dedicated account services remain local.
+const upstreams = createUpstreams(loadUpstreams(), { log: message => logger.info(message) });
 
 // Parse fallback flag directly from command line args to avoid circular dependency
 const args = process.argv.slice(2);
@@ -86,14 +90,14 @@ app.use((req, res, next) => {
 });
 
 // API Key authentication middleware for /v1/* endpoints
-app.use('/v1', (req, res, next) => {
+app.use(['/v1', '/v1beta'], (req, res, next) => {
     // Skip validation if apiKey is not configured
     if (!config.apiKey) {
         return next();
     }
 
     const authHeader = req.headers['authorization'];
-    const xApiKey = req.headers['x-api-key'];
+    const xApiKey = req.headers['x-api-key'] || req.headers['x-goog-api-key'] || req.query.key;
 
     let providedKey = '';
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -118,6 +122,7 @@ app.use('/v1', (req, res, next) => {
 
 // Setup usage statistics middleware
 usageStats.setupMiddleware(app);
+app.use(upstreams.middleware);
 
 /**
  * Silent handler for Claude Code CLI root POST requests
@@ -664,26 +669,18 @@ app.get('/v1/models', async (req, res) => {
     try {
         await ensureInitialized();
         const accounts = accountManager.getAllAccounts().filter(a => a.enabled !== false && !a.isInvalid);
-        if (!accounts.length) {
-            return res.status(503).json({
-                type: 'error',
-                error: {
-                    type: 'api_error',
-                    message: 'No accounts available'
-                }
-            });
-        }
         const results = await Promise.allSettled(accounts.map(async account => {
             const token = await accountManager.getTokenForAccount(account);
             return listModels(token);
         }));
         const successful = results.filter(r => r.status === 'fulfilled');
-        if (!successful.length) throw results[0].reason;
         const models = new Map();
         for (const result of successful) {
             for (const model of result.value.data) models.set(model.id, model);
         }
-        res.json({ object: 'list', data: [...models.values()] });
+        const merged = await upstreams.mergeModels([...models.values()]);
+        if (!merged.length) throw new Error('No upstream model catalogs available');
+        res.json({ object: 'list', data: merged });
     } catch (error) {
         logger.error('[API] Error listing models:', error);
         res.status(500).json({
