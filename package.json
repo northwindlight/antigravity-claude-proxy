@@ -38,7 +38,6 @@
     "test:sanitizer": "node tests/test-schema-sanitizer.cjs",
     "test:strategies": "node tests/test-strategies.cjs",
     "test:account-model-access": "node --test tests/test-account-model-access.cjs",
-    "test:upstreams": "node --test tests/test-upstreams.js tests/test-account-model-access.cjs",
     "test:cache-control": "node tests/test-cache-control.cjs",
     "test:billing-header": "node tests/test-billing-header.cjs",
     "test:stats": "node tests/test-usage-stats.js"
