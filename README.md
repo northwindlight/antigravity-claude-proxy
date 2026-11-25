@@ -147,6 +147,15 @@ curl http://localhost:8080/health
 curl "http://localhost:8080/account-limits?format=table"
 ```
 
+### Gemini SDK on a dedicated instance
+
+For an instance with exactly one account, set `ANTIGRAVITY_GEMINI_API=true` to enable
+`POST /v1beta/models/{gemini-model}:generateContent` and
+`POST /v1beta/models/{gemini-model}:streamGenerateContent?alt=sse`.
+Set the Google Gen AI SDK base URL to the proxy and use a model ID from `/v1/models`.
+If the proxy has an API key configured, pass that key to the SDK. The proxy forwards
+Gemini contents, tool calls, and thought signatures through the configured Antigravity account.
+
 ---
 
 ## Using with Claude Code CLI

@@ -9,6 +9,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { sendMessage, sendMessageStream, listModels, getModelQuotas, getSubscriptionTier, isValidModel } from './cloudcode/index.js';
+import { mountGeminiAPI } from './cloudcode/gemini-api.js';
 import { mountWebUI } from './webui/index.js';
 import { config } from './config.js';
 
@@ -231,6 +232,10 @@ app.post('/test/clear-signature-cache', (req, res) => {
     logger.debug('[Test] Cleared all signature caches and removed persisted store');
     res.json({ success: true, message: 'All signature caches cleared' });
 });
+
+if (process.env.ANTIGRAVITY_GEMINI_API === 'true') {
+    mountGeminiAPI(app, { accountManager, ensureInitialized, config, logger });
+}
 
 /**
  * Health check endpoint - Detailed status
